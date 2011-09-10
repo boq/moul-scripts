@@ -235,7 +235,7 @@ kPublicAgesDescription = {
      'GuildPub-Greeters' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
      'GuildPub-Maintainers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
      'GuildPub-Messengers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
-     'GuildPub-Writers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),   
+     'GuildPub-Writers' : ("Nexus.Messages.GuildPubFull", "Nexus.Messages.GuildPubPopulation"),
 }
 
 # hood sorting vars
@@ -885,7 +885,6 @@ class nxusBookMachine(ptModifier):
             if not self.dialogVisible:
                 self.dialogVisible = True
                 self.IClearGUI()
-                self.IUpdateGUICategoryList()
                 self.IUpdateHoodLink()
                 self.IUpdateLinks()
                 self.buttonsEnabled = True
@@ -897,25 +896,20 @@ class nxusBookMachine(ptModifier):
             # Link Select Buttons  #
             ##################
             if (ctrlID >= kIDBtnLinkSelectFirst and ctrlID <= kIDBtnLinkSelectLast) or ctrlID == kIDBtnNeighborhoodSelect:
-                self.idLinkSelected = ctrlID
-                self.IUpdateGUILinkList()
+                self.IRetractGetBookBtn()
 
-                if not self.getBookBtnUp:
-                    self.IRetractGetBookBtn()
+                self.IChangeSelectedLink(ctrlID)
 
             ##################
             # Category Select Buttons  #
             ##################
 
             elif ctrlID >= kIDBtnLinkCategory01 and ctrlID <= kIDBtnLinkCategory04:
-                #after category change currently selected link id is invalid
-                if self.getBookBtnUp and self.idLinkSelected != kIDBtnNeighborhoodSelect:
+                #after category change currently selected link id is invalid, so disable button
+                if self.idLinkSelected != kIDBtnNeighborhoodSelect:
                     self.IPushGetBookBtn()
 
-                self.idCategorySelected = ctrlID
-
-                self.IUpdateGUICategoryList()
-                self.IUpdateLinks()
+                self.IChangeCategory(ctrlID)
 
             #############
             #   Scroll Buttons    #
@@ -1023,6 +1017,36 @@ class nxusBookMachine(ptModifier):
         btn.hide()
         btn.disable()
 
+    def IChangeSelection(self, oldSelection, newSelection):
+        #reenable old entry
+        if oldSelection is not None:
+            btnId = oldSelection
+            txtId = oldSelection + 1
+            ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId)).enable()
+            ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtId)).setForeColor(colorNormal)
+
+        #disable and highlight new entry                                        
+        btnId = newSelection
+        txtId = newSelection + 1
+        ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId)).disable()
+        ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtId)).setForeColor(colorSelected)
+
+    def IChangeCategory(self, newCategory):
+        if newCategory == self.idCategorySelected:
+            return
+
+        self.IChangeSelection(self.idCategorySelected, newCategory)
+        self.idCategorySelected = newCategory
+        #update links with entries from new category
+        self.IUpdateLinks()
+
+    def IChangeSelectedLink(self, newSelection):
+        if newSelection == self.idLinkSelected:
+            return
+
+        self.IChangeSelection(self.idLinkSelected, newSelection)
+        self.idLinkSelected = newSelection
+
 
     def IGetControlColor(self, controlId, enabled = True):
         if not enabled:
@@ -1105,6 +1129,17 @@ class nxusBookMachine(ptModifier):
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDBtnNeighborhoodSelect)).setNotifyOnInteresting(1)
 
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtLinkDescription)).setString("")
+
+        #highlight selected category
+        for (txtId, btnId) in kGUICategoryControls:
+            btn = ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId))
+            if self.idCategorySelected == btnId:
+                color = colorSelected
+                btn.disable()
+            else:
+                color = colorNormal
+                btn.enable()
+            ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtId)).setForeColor(color)
 
     def IClearEntryList(self):
         #reset scrolling
@@ -1493,18 +1528,6 @@ class nxusBookMachine(ptModifier):
             self.IShowEnableButton(idTextbox - 1)
             self.IEnableDelete(idButton = idTextbox + 99, enable = entry.canDelete)
             idTextbox += 10
-
-    def IUpdateGUICategoryList(self):
-        for (txtId, btnId) in kGUICategoryControls:
-            btn = ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId))
-            if self.idCategorySelected == btnId:
-                color = colorSelected
-                btn.disable()
-            else:
-                color = colorNormal
-                btn.enable()
-
-            ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtId)).setForeColor(color)
 
     def IUpdateLinks(self, categoryId = None):
         if not PtIsDialogLoaded(kNexusDialogName):

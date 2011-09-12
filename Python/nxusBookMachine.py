@@ -39,15 +39,10 @@ from PlasmaVaultConstants import *
 from xPsnlVaultSDL import *
 
 import xLocTools
-import xVisitorUtils
 
 import PlasmaControlKeys
 import datetime
 import random
-import string
-import time
-
-
 
 # define the attributes that will be entered in max
 NexusGUI = ptAttribGUIDialog(1, "The Nexus GUI")
@@ -290,6 +285,7 @@ class LinkListEntry():
         self.description = description
         self.canDelete = canDelete
         self.isEnabled = isEnabled
+        self.als = None
 
     def setLinkStruct(self, ageInfo, spawnPoint = None, linkRule = PtLinkingRules.kBasicLink):
         if isinstance(ageInfo, ptVaultAgeInfoNode):
@@ -297,7 +293,7 @@ class LinkListEntry():
 
         self.als = ptAgeLinkStruct()
         self.als.setAgeInfo(ageInfo)
-        self.als.setLinkingRules(PtLinkingRules.kBasicLink)
+        self.als.setLinkingRules(linkRule)
         if spawnPoint is not None:
             self.als.setSpawnPoint(spawnPoint)
 
@@ -387,7 +383,7 @@ class nxusBookMachine(ptModifier):
                 try:
                     pop = ageSDL[maxPopVar][0]
                     self.publicAges[ageName].maxPop = pop
-                except KeyError, IndexError:
+                except (KeyError, IndexError):
                     PtDebugPrint("Unable to get  '%s' from SDL, defaulting to %d" % (maxPopVar, self.publicAges[ageName].maxPop))
 
             #checking if link is visible
@@ -396,7 +392,7 @@ class nxusBookMachine(ptModifier):
                 try:
                     visible = ageSDL[linkVisibleVar]
                     self.publicAges[ageName].linkVisible = visible
-                except KeyError, IndexError:
+                except (KeyError, IndexError):
                     PtDebugPrint("Unable to get  '%s' from SDL, defaulting to %d" % (linkVisibleVar, self.publicAges[ageName].linkVisible))
 
         #special cases
@@ -405,7 +401,7 @@ class nxusBookMachine(ptModifier):
         PtDebugPrint("nxusBookMachine.OnServerInitComplete(): Grabbing the show great zero toggle")
         try:
             self.showGreatZero = ageSDL["nxusShowGZ"][0]
-        except KeyError, IndexError:
+        except (KeyError, IndexError):
             PtDebugPrint("Unable to get show great zero toggle from SDL, defaulting to false")
             self.showGreatZero = False
 
@@ -513,11 +509,11 @@ class nxusBookMachine(ptModifier):
         if hoodSort == kSortNone:
             return hoodsToSort
 
-        reversed = (hoodSort in (kSortNameDesc, kSortPopDesc))
+        reverse = (hoodSort in (kSortNameDesc, kSortPopDesc))
         if hoodSort in (kSortNameAsc, kSortNameDesc):
-            return sorted(hoodsToSort, key = lambda hood: hood.ageInfo.getDisplayName(), reverse = reversed)
+            return sorted(hoodsToSort, key = lambda hood: hood.ageInfo.getDisplayName(), reverse = reverse)
         else:
-            return sorted(hoodsToSort, key = lambda hood: hood.population, reverse = reversed)
+            return sorted(hoodsToSort, key = lambda hood: hood.population, reverse = reverse)
 
     def IFindAgeLinkInFolder(self, folder, ageName):
         ageName = ageName.lower()
@@ -558,7 +554,7 @@ class nxusBookMachine(ptModifier):
     def IGetHoodInfoNode(self):
         vault = ptVault()
         folder = vault.getAgesIOwnFolder()
-        return self.IFindAgeInfoInFolder(folder, 'Neighborhood');
+        return self.IFindAgeInfoInFolder(folder, 'Neighborhood')
 
     def IIsMyHoodPublic(self):
         hoodInfo = self.IGetHoodInfoNode()
@@ -579,12 +575,12 @@ class nxusBookMachine(ptModifier):
             PtRemovePublicAge(guid, self)
 
     def IPublicAgeCreated(self, ageName):
-        PtDebugPrint("IPublicAgeCreated: " + ageName);
-        PtGetPublicAgeList(ageName, self);
+        PtDebugPrint("IPublicAgeCreated: " + ageName)
+        PtGetPublicAgeList(ageName, self)
 
     def IPublicAgeRemoved(self, ageName):
-        PtDebugPrint("IPublicAgeRemoved: " + ageName);
-        PtGetPublicAgeList(ageName, self);
+        PtDebugPrint("IPublicAgeRemoved: " + ageName)
+        PtGetPublicAgeList(ageName, self)
 
     def IHoodCreated(self, ageInfo):
         PtDebugPrint("OnVaultNotify: A new neighborhood was created! Time to scramble...I mean randomize the SDL!")
@@ -649,12 +645,12 @@ class nxusBookMachine(ptModifier):
             self.IUpdateLinks()
 
         elif event == PtVaultNotifyTypes.kPublicAgeCreated:
-            ageName = tupdata[0];
-            self.IPublicAgeCreated(ageName);
+            ageName = tupdata[0]
+            self.IPublicAgeCreated(ageName)
 
         elif event == PtVaultNotifyTypes.kPublicAgeRemoved:
-            ageName = tupdata[0];
-            self.IPublicAgeRemoved(ageName);
+            ageName = tupdata[0]
+            self.IPublicAgeRemoved(ageName)
 
     def OnVaultEvent(self, event, tupdata):
         if event == PtVaultCallbackTypes.kVaultNodeSaved:
@@ -678,11 +674,11 @@ class nxusBookMachine(ptModifier):
             return
 
         dataRecord = sdl.getStateDataRecord()
-        for (name, range) in kRandomizeVars.iteritems():
+        for (name, values) in kRandomizeVars.iteritems():
             var = dataRecord.findVar(name)
             if var is None:
                 PtDebugPrint('IRandomizeNeighborhood: Var %s not found in SDL record. Not randomizing' % name)
-                value = random.choice(range)
+                value = random.choice(values)
                 if var.getType() == PtSDLVarType.kBool: # there are only bool values right now
                     var.setBool(value)
                     PtDebugPrint('IRandomizeNeighborhood: Setting bool var %s to %s' % (name, value))
@@ -1025,7 +1021,7 @@ class nxusBookMachine(ptModifier):
             ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId)).enable()
             ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtId)).setForeColor(colorNormal)
 
-        #disable and highlight new entry                                        
+        #disable and highlight new entry
         btnId = newSelection
         txtId = newSelection + 1
         ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId)).disable()
@@ -1171,7 +1167,7 @@ class nxusBookMachine(ptModifier):
         if dniCoords is not None:
             coords = (dniCoords.getTorans(), dniCoords.getHSpans(), dniCoords.getVSpans())
         else:
-           coords = (0, 0, 0)
+            coords = (0, 0, 0)
         return U"%05d%   04d%   04d" % coords
 
     def IDeleteLink(self):
@@ -1240,9 +1236,9 @@ class nxusBookMachine(ptModifier):
                             entry.selected = instance
                             break
                     else:
-                       PtDebugPrint("nxsuBookMachine.IChoosePublicInstances(): Couldn't find hardcoded GUID %s in %s public instances" % (guid, ageFilename))
-                       #ageData.selected = minPop
-                       entry.selected = entry.instances[0]
+                        PtDebugPrint("nxsuBookMachine.IChoosePublicInstances(): Couldn't find hardcoded GUID %s in %s public instances" % (guid, ageFilename))
+                        #ageData.selected = minPop
+                        entry.selected = entry.instances[0]
                 except KeyError:
                     #ageData.selected = minPop
                     entry.selected = entry.instances[0]
@@ -1266,7 +1262,7 @@ class nxusBookMachine(ptModifier):
             displayName = spawnPoint.getTitle()
             # Don't display spawn points that shouldn't be shown
             if displayName in kHiddenCityLinks:
-               continue
+                continue
 
 
             if displayName == "Ferry Terminal":
@@ -1386,7 +1382,7 @@ class nxusBookMachine(ptModifier):
 
         personalList = list()
         if self.showGreatZero:
-                personalList.extend(self.IGetGZLinks())
+            personalList.extend(self.IGetGZLinks())
         folder = vault.getAgesIOwnFolder()
         personalList.extend(self.IGetAgesFromFolder(folder, kHiddenPersonalAges, False))
         self.categoryLinksList[kCategoryPersonal] = personalList
@@ -1481,7 +1477,7 @@ class nxusBookMachine(ptModifier):
         self.hoodEntry = LinkListEntry(displayName, infoTxt, description, True, True)
         self.hoodEntry.setLinkStruct(info, spawnPoint = None, linkRule = PtLinkingRules.kOwnedBook) #create link to instance, use default spawnPoint
 
-        self.IUpdateGuiEntry(kIDBtnNeighborhoodSelect, kIDTxtNeighborhoodName, kIDTxtNeighborhoodInfo, self.hoodEntry);
+        self.IUpdateGuiEntry(kIDBtnNeighborhoodSelect, kIDTxtNeighborhoodName, kIDTxtNeighborhoodInfo, self.hoodEntry)
 
         if info.isPublic():
             hoodPubPriv = PtGetLocalizedString("Nexus.Neighborhood.MakePrivate")
@@ -1571,7 +1567,7 @@ class nxusBookMachine(ptModifier):
 
     def IDoLink(self):
         if self.presentedBookAls is None:
-                ptDebugPrint("nxusBookMachine.IDoLink(): Tried to link without chosen book. This Is Bad Thing (R)")
+            ptDebugPrint("nxusBookMachine.IDoLink(): Tried to link without chosen book. This Is Bad Thing (R)")
         else:
             linkMgr = ptNetLinkingMgr()
             linkMgr.linkToAge(self.presentedBookAls)
@@ -1613,7 +1609,6 @@ class nxusBookMachine(ptModifier):
                             GUIDChronFound = 1
                             print "found pellet cave GUID: ", chron.getValue()
                             return
-                    #return
 
         pelletCaveGUID = ""
         ageStruct = ptAgeInfoStruct()

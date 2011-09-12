@@ -323,7 +323,7 @@ class nxusBookMachine(ptModifier):
         self.buttonsEnabled = False
         self.dialogVisible = False
 
-        self.oldStatusBarText = U""
+        self.currentStatusBarText = U""
 
         self.publicHoodSort = kSortNone #current hood list sorting method
 
@@ -760,7 +760,6 @@ class nxusBookMachine(ptModifier):
 
         if self.presentedBookAls is not None:
             self.IBookRetract()
-            actLink.disable()
 
         if self.idLinkSelected is not None:
             self.ICancelLinkChoice()
@@ -848,7 +847,6 @@ class nxusBookMachine(ptModifier):
 
         action = self.onNotifyActions.get(id)
         if action is not None:
-            PtDebugPrint("nxusBookMachine.OnNotify(): id = %d, action = %s" % (id, action.im_func.__name__))
             action(state, events)
 
 
@@ -990,18 +988,15 @@ class nxusBookMachine(ptModifier):
 
         elif event == kInterestingEvent:
             if control is not None:
-                descrTxt = ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtLinkDescription))
                 if control.isInteresting():
-                    self.oldStatusBarText = descrTxt.getStringW()
                     ctrlID = control.getTagID()
                     try:
-                        name = self.controlIdToAgeEntry[ctrlID].description
-                        descrTxt.setStringW(name)
+                        description = self.controlIdToAgeEntry[ctrlID].description
+                        self.ISetDescriptionText(description, False)
                     except KeyError:
                         pass
                 else:
-                    descrTxt.setStringW(self.oldStatusBarText)
-                    self.oldStatusBarText = U""
+                    self.ISetDescriptionText(self.currentStatusBarText, False)
 
     def IShowEnableButton(self, controlId):
         btn = ptGUIControlButton(NexusGUI.dialog.getControlFromTag(controlId))
@@ -1013,7 +1008,14 @@ class nxusBookMachine(ptModifier):
         btn.hide()
         btn.disable()
 
-    def IChangeSelection(self, oldSelection, newSelection):
+    def ISetDescriptionText(self, description, permanent = True):
+        descrTxt = ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtLinkDescription))
+        descrTxt.setStringW(description)
+        if permanent:
+            self.currentStatusBarText = description
+            
+
+    def IChangeSelection(self, oldSelection, newSelection, description = U""):
         #reenable old entry
         if oldSelection is not None:
             btnId = oldSelection
@@ -1026,6 +1028,8 @@ class nxusBookMachine(ptModifier):
         txtId = newSelection + 1
         ptGUIControlButton(NexusGUI.dialog.getControlFromTag(btnId)).disable()
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtId)).setForeColor(colorSelected)
+        
+        self.ISetDescriptionText(description)
 
     def IChangeCategory(self, newCategory):
         if newCategory == self.idCategorySelected:
@@ -1040,7 +1044,8 @@ class nxusBookMachine(ptModifier):
         if newSelection == self.idLinkSelected:
             return
 
-        self.IChangeSelection(self.idLinkSelected, newSelection)
+        description = self.controlIdToAgeEntry[newSelection].description
+        self.IChangeSelection(self.idLinkSelected, newSelection, description)
         self.idLinkSelected = newSelection
 
 
@@ -1062,7 +1067,7 @@ class nxusBookMachine(ptModifier):
             ptGUIControlButton(NexusGUI.dialog.getControlFromTag(idButton)).enable()
 
         if self.idLinkSelected == idButton:
-            ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtLinkDescription)).setStringW(linkEntry.description)
+            self.ISetDescriptionText(linkEntry.description)
 
 
         displayName = linkEntry.displayName
@@ -1102,8 +1107,9 @@ class nxusBookMachine(ptModifier):
                 control.disable()
 
     def ICancelLinkChoice(self):
-        self.idLinkSelected = None
         self.IPushGetBookBtn()
+        self.idLinkSelected = None
+        self.ISetDescriptionText(U"")
 
     def IClearGUI(self):
         # clear header titles and disable their buttons
@@ -1124,7 +1130,7 @@ class nxusBookMachine(ptModifier):
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtNeighborhoodPublic)).setString("")
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDBtnNeighborhoodSelect)).setNotifyOnInteresting(1)
 
-        ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtLinkDescription)).setString("")
+        self.ISetDescriptionText(U"")
 
         #highlight selected category
         for (txtId, btnId) in kGUICategoryControls:
@@ -1154,10 +1160,7 @@ class nxusBookMachine(ptModifier):
             ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtNameId)).setString("")
             ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(txtInfoId)).setString("")
 
-            if self.idCategorySelected == kIDBtnLinkCategory01:
-                ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(btnSelectId)).setNotifyOnInteresting(0)
-            else:
-                ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(btnSelectId)).setNotifyOnInteresting(1)
+            ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(btnSelectId)).setNotifyOnInteresting(1)
 
             self.IHideDisableButton(btnSelectId)
             self.IHideDisableButton(btnDeleteId)
@@ -1454,7 +1457,7 @@ class nxusBookMachine(ptModifier):
 
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtNeighborhoodName)).setString("")
         ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtNeighborhoodInfo)).setString("")
-        ptGUIControlTextBox(NexusGUI.dialog.getControlFromTag(kIDTxtLinkDescription)).setString("")
+        self.ISetDescriptionText(U"")
 
     def IUpdateHoodLink(self):
         hoodLink = self.IGetHoodLinkNode()

@@ -208,9 +208,9 @@ kLinkPanels = {
           },
 
 'GreatZero' : {'' : U'LinkPanel_Great Zero Observation',
-               'BigRoomLinkInPoint' : 'LinkPanel_GreatZero'
+               'BigRoomLinkInPoint' : U'LinkPanel_GreatZero'
               },
-'Neighborhood02' : {'' : 'LinkPanel_Kirel'
+'Neighborhood02' : {'' : U'LinkPanel_Kirel'
                    },
 }
 
@@ -1234,13 +1234,10 @@ class nxusBookMachine(ptModifier):
             panelName = self.IGetLinkPanelName(self.presentedBookAls)
             PtDebugPrint("drawing link panel: %s" % (panelName))
             for objPanel in objlistLinkPanels.value:
-                PtDebugPrint("name: " + objPanel.getName())
                 if objPanel.getName() == panelName:
                     objPanel.draw.enable()
                 else:
                     objPanel.draw.disable()
-            else:
-                PtDebugPrint("nxusBookMachine.IDrawLinkPanel: can't find panel %s" % panelName)
 
     def IChoosePublicInstances(self):
         for (ageFilename, entry) in self.publicAges.iteritems():

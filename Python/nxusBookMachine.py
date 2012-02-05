@@ -495,8 +495,8 @@ class nxusBookMachine(ptModifier):
             ageFilename = age[0].getAgeFilename()
             if ageFilename == "Neighborhood":
                 # if the current population and number of owners is zero then don't display it
-                #looks like it doesn't work (at least on Dirtsand)
-                if age[2] != 0 or age[1] != 0:
+                #HACK: looks like it doesn't work on Dirtsand, since owner count is always 0
+                #if age[2] != 0 or age[1] != 0:
                     hoods.append(AgeInstance(age))
             else:
                 PtDebugPrint("nxusBookMachine.gotPublicAgeList() - got the list of %s instances" % ageFilename)

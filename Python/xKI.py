@@ -9200,13 +9200,12 @@ class xKI(ptModifier):
                     if BKInEditMode and BKEditField == kBKEditFieldJRNTitle:
                         pass
                     else:
-                        jrnTitle.setString(xCensor.xCensor(element.noteGetTitle(),theCensorLevel))
+                        jrnTitle.setStringW(xCensor.xCensor(element.getTitleW(),theCensorLevel))
                         jrnTitle.show()
                     if BKInEditMode and BKEditField == kBKEditFieldJRNNote:
                         pass
                     else:
-                        encoded = buffer(xCensor.xCensor(element.noteGetText(),theCensorLevel))
-                        jrnNote.setEncodedBuffer(encoded)
+                        jrnNote.setStringW(xCensor.xCensor(element.getTextW(),theCensorLevel))
                         jrnNote.show()
                     self.IBigKISetSeen(BKCurrentContent)
                     # if this came from someone else (and its in the Incoming folder?)...
